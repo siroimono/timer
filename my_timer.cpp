@@ -8,6 +8,7 @@ int main(int argc, char **argv)
   {
     Control ctl;
     UI ui(ctl);
+    ui.run();
   }
   catch (Exception err)
   {

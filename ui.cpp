@@ -1,4 +1,5 @@
 #include "timer.h"
+#include <unistd.h>
 
 using namespace std;
 
@@ -11,7 +12,7 @@ UI::~UI()
 
 void UI::run()
 {
-  printf("\n Timer run \n");
+  printf("\n====================== Timer Run ======================\n");
   const map<string, Data> &db = this->ctl.get_db_read();
   if (db.size() == 0)
   {
@@ -23,8 +24,11 @@ void UI::run()
       getline(cin, buf);
       if (buf.empty() || buf == "y" || buf == "y")
       {
-        // add data()
-        break;
+        this->add_data_UI();
+        if (db.size() > 0)
+        {
+          break;
+        }
       }
       else if (buf == "N" || buf == "n")
       {
@@ -37,12 +41,28 @@ void UI::run()
       }
     }
   }
-  else
+  this->ctl.get_l_time();
+  for (auto it = db.cbegin(); it != db.cend(); it++)
   {
-    for (auto it = db.cbegin(); it != db.cend(); it++)
+    if (it->first == "local_time")
     {
-      printf("%s   ::   total time %s\n", it->first.c_str(),
+      printf("%s -> %s\n", it->first.c_str(),
              it->second.get_data_read().total_time.c_str());
+    }
+    else
+    {
+      bool tmp_flag = it->second.get_run();
+      string tmps = "";
+      if (tmp_flag)
+      {
+        tmps = "run";
+      }
+      else
+      {
+        tmps = "stop";
+      }
+      printf("%s -> %s   stat -> %s\n", it->first.c_str(),
+             it->second.get_data_read().total_time.c_str(), tmps.c_str());
     }
   }
 }
@@ -55,7 +75,11 @@ void UI::add_data_UI()
   bool flag = this->ctl.add_data(buf);
   if (flag == true)
   {
-    printf("success add data %s", buf.c_str());
+    printf("success add data %s\n\n", buf.c_str());
+  }
+  else
+  {
+    printf("before using name.. %s\n\n", buf.c_str());
   }
   return;
 }

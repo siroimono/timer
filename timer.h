@@ -23,8 +23,6 @@ class Control;
 
 struct _Data
 {
-  string start_time;
-  string end_time;
   string total_time;
 };
 
@@ -32,16 +30,21 @@ class Data
 {
 private:
   string name;
+  bool run;
   struct _Data _data;
 
 public:
-  Data(const string &name);
+  Data();
   ~Data();
+  Data(const string &name);
 
   struct _Data &get_data();
   const struct _Data &get_data_read() const;
 
   const string &get_name_read() const;
+
+  const bool get_run() const;
+  void set_run(bool flag);
 };
 
 class Control
@@ -53,7 +56,7 @@ public:
   Control();
   ~Control();
 
-  void init();
+  const string &get_l_time();
   const map<string, Data> &get_db_read() const;
 
   bool add_data(string &name);
