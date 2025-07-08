@@ -61,8 +61,8 @@ string Control::convert(time_t t)
 
 string Control::convert_l(const time_t &t)
 {
-  struct tm local_t;
-  memset(&local_t, 0, sizeof(struct tm));
+  struct tm local_t = {};
+  // memset(&local_t, 0, sizeof(struct tm));
   auto flag_local = localtime_r(&t, &local_t);
   if (flag_local == NULL)
   {
@@ -126,8 +126,8 @@ bool Control::del_data(string &name)
 int Control::alarm()
 {
   struct itimerval st_itime = {};
-  st_itime.it_interval.tv_sec = 60;
-  st_itime.it_value.tv_sec = 60;
+  st_itime.it_interval.tv_sec = 5;
+  st_itime.it_value.tv_sec = 5;
 
   int flag = setitimer(ITIMER_REAL, &st_itime, NULL);
   if (flag == -1)
@@ -166,7 +166,7 @@ void Control::sig_alrm_handler(int sig, siginfo_t *sig_info, void *vvv)
   {
     if (it->second.get_run() == true)
     {
-      it->second.get_data().total_time += 60;
+      it->second.get_data().total_time += 5;
     }
   }
 }
@@ -205,25 +205,39 @@ bool Control::find_data(const string &name)
   return false;
 }*/
 
-const int Control::set_run_Ctl(const string &name, bool set)
+const int Control::set_run_Ctl(const string &name, const string &flag)
 {
+  bool set_bool = false;
+
+  if (flag == "1")
+  {
+    set_bool = true;
+  }
+  else if (flag == "2")
+  {
+    set_bool = false;
+  }
+  else
+  {
+    return -1;
+  }
+
   auto it = this->db.find(name);
+
   if (it != db.end())
   {
-    if (set == true && it->second.get_run() == false)
+    if (set_bool == true && it->second.get_run() == false)
     {
-      if (it->second.set_run(set) != 0)
+      if (it->second.set_run(set_bool) != 0)
       {
-        printf("ERR int Control::set_run_Ctl(const string &name)\n");
         return -1;
       }
       return 0;
     }
-    else if (set == false && it->second.get_run() == true)
+    else if (set_bool == false && it->second.get_run() == true)
     {
-      if (it->second.set_run(set) != 0)
+      if (it->second.set_run(set_bool) != 0)
       {
-        printf("ERR int Control::set_run_Ctl(const string &name)\n");
         return -1;
       }
       return 0;

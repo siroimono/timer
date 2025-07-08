@@ -83,7 +83,7 @@ public:
   static void sig_int_handler(int sig, siginfo_t *sig_info, void *vvv);
 
   // bool find_data(const string &name);
-  const int set_run_Ctl(const string &name, bool set);
+  const int set_run_Ctl(const string &name, const string &flag);
 };
 
 class UI
@@ -129,3 +129,17 @@ public:
   const string &get_err_name() const;
   const int &get_err_no() const;
 };
+
+/*
+class Sig_Guard
+{
+private:
+  sigset_t sig_set_block;
+  sigset_t sig_set_old;
+
+public:
+  Sig_Guard();
+  ~Sig_Guard();
+  int sig_block_run(vector<int> &vi);
+};
+*/

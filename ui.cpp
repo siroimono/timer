@@ -1,4 +1,5 @@
 #include "timer.h"
+#include <csignal>
 
 using namespace std;
 
@@ -13,83 +14,68 @@ bool UI::sig_int_flag = false; // static
 
 void UI::menu()
 {
-  int buf_i = 7;
-  while (buf_i != 0)
+  sigset_t st;
+  sigemptyset(&st);
+  sigfillset(&st);
+
+  string buf_s = "";
+  while (buf_s != "0")
   {
     printf("\n====================== Timer Menu ======================\n");
     printf("[1] stat   [2] add   [3] del   [4] set   [5] run\n");
-    cin >> buf_i;
-    cin.ignore();
 
-    switch (buf_i)
-    {
-    case 1:
+    sigprocmask(SIG_BLOCK, &st, NULL);
+    getline(cin, buf_s);
+    sigprocmask(SIG_UNBLOCK, &st, NULL);
+
+    if (buf_s == "1")
     {
       this->stat();
-      break;
     }
-    case 2:
+    else if (buf_s == "2")
     {
       this->add_data_UI();
-      break;
     }
-    case 3:
+    else if (buf_s == "3")
     {
       this->del_data_UI();
-      break;
     }
-    case 4:
+    else if (buf_s == "4")
     {
       this->timer_set();
-      break;
     }
-    case 5:
+    else if (buf_s == "5")
     {
       this->timer_run();
       this->run_stat();
-      break;
     }
+    else
+    {
+      printf("plz input 1~5 \n");
     }
   }
 }
 
 void UI::timer_set()
 {
-  while (1)
-  {
-    printf("\n====================== Timer Set ======================\n");
-    printf("[1] set -> Run   [2] set -> stop\n");
-    int buf;
-    string buf_s;
-    cin >> buf;
-    cin.ignore();
-    if (buf == 1)
-    {
-      printf("name ? input plz\n");
-      getline(cin, buf_s);
+  sigset_t st;
+  sigemptyset(&st);
+  sigfillset(&st);
+  sigprocmask(SIG_BLOCK, &st, NULL);
+  printf("\n====================== Timer Set ======================\n");
+  printf("plz input set name\n");
+  string buf_org;
+  getline(cin, buf_org);
 
-      int ret0 = this->ctl.set_run_Ctl(buf_s, true);
-      this->check_UI(ret0, "set_run_Ctl");
+  printf("[1] run   [2] stop\n");
+  string buf_s;
+  getline(cin, buf_s);
 
-      this->stat();
-      break;
-    }
-    else if (buf == 2)
-    {
-      printf("name ? input plz\n");
-      getline(cin, buf_s);
+  int ret0 = this->ctl.set_run_Ctl(buf_org, buf_s);
+  this->check_UI(ret0, "set_run_Ctl");
 
-      int ret0 = this->ctl.set_run_Ctl(buf_s, false);
-      this->check_UI(ret0, "set_run_Ctl");
-
-      this->stat();
-      break;
-    }
-    else
-    {
-      printf("plz input 1 or 2\n");
-    }
-  }
+  this->stat();
+  sigprocmask(SIG_UNBLOCK, &st, NULL);
 }
 
 void UI::timer_run()
@@ -124,6 +110,10 @@ void UI::check_UI(const int ret, const string &name)
 
 void UI::add_data_UI()
 {
+  sigset_t st;
+  sigemptyset(&st);
+  sigfillset(&st);
+  sigprocmask(SIG_BLOCK, &st, NULL);
   printf("input data name\n");
   string buf;
   getline(cin, buf);
@@ -137,14 +127,21 @@ void UI::add_data_UI()
   {
     printf("before using name.. %s\n\n", buf.c_str());
   }
+  sigprocmask(SIG_UNBLOCK, &st, NULL);
+
   return;
 }
 
 void UI::del_data_UI()
 {
   printf("input data name\n");
+  sigset_t st;
+  sigemptyset(&st);
+  sigfillset(&st);
   string buf;
+  sigprocmask(SIG_BLOCK, &st, NULL);
   getline(cin, buf);
+  sigprocmask(SIG_UNBLOCK, &st, NULL);
   bool flag = this->ctl.del_data(buf);
   if (flag == true)
   {
@@ -194,16 +191,16 @@ void UI::stat()
 
 void UI::run_stat()
 {
-  while (!UI::sig_int_flag)
+  while (1)
   {
     this->stat();
-    sleep(60);
+    sleep(5);
     if (UI::sig_int_flag == true)
     {
       break;
     }
   }
-  UI::sig_int_flag = true;
+  UI::sig_int_flag = false;
   printf("\t breck run_stat() \n");
   return;
 }
