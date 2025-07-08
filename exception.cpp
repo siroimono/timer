@@ -12,3 +12,16 @@ Exception::Exception(string &err_type, string &err_name, int err_no)
 Exception::~Exception()
 {
 }
+
+const string &Exception::get_err_type() const
+{
+  return this->err_type;
+}
+const string &Exception::get_err_name() const
+{
+  return this->err_name;
+}
+const int &Exception::get_err_no() const
+{
+  return this->err_no;
+}

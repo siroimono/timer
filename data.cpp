@@ -20,6 +20,18 @@ struct _Data &Data::get_data()
   return this->_data;
 }
 
+void Data::set_data_time(time_t t)
+{
+  this->_data.total_time = t;
+  return;
+}
+
+void Data::set_data_s(const string &s)
+{
+  this->_data.time_s = s;
+  return;
+}
+
 const struct _Data &Data::get_data_read() const
 {
   return this->_data;
@@ -35,8 +47,8 @@ const bool Data::get_run() const
   return this->run;
 }
 
-void Data::set_run(bool flag)
+const int Data::set_run(bool flag)
 {
   this->run = flag;
-  return;
+  return 0;
 }

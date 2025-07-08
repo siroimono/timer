@@ -1,5 +1,4 @@
 #include "timer.h"
-#include <unistd.h>
 
 using namespace std;
 
@@ -10,62 +9,118 @@ UI::~UI()
 {
 }
 
-void UI::run()
+bool UI::sig_int_flag = false; // static
+
+void UI::menu()
 {
-  printf("\n====================== Timer Run ======================\n");
-  const map<string, Data> &db = this->ctl.get_db_read();
-  if (db.size() == 0)
+  int buf_i = 7;
+  while (buf_i != 0)
   {
-    printf("empty ...\n");
-    while (1)
+    printf("\n====================== Timer Menu ======================\n");
+    printf("[1] stat   [2] add   [3] del   [4] set   [5] run\n");
+    cin >> buf_i;
+    cin.ignore();
+
+    switch (buf_i)
     {
-      printf("want add ? \t [Y] / [n]\n");
-      string buf;
-      getline(cin, buf);
-      if (buf.empty() || buf == "y" || buf == "y")
-      {
-        this->add_data_UI();
-        if (db.size() > 0)
-        {
-          break;
-        }
-      }
-      else if (buf == "N" || buf == "n")
-      {
-        printf("exit(0)...\n");
-        exit(0);
-      }
-      else
-      {
-        printf("select plz [Y] / [n]\n");
-      }
+    case 1:
+    {
+      this->stat();
+      break;
     }
-  }
-  this->ctl.get_l_time();
-  for (auto it = db.cbegin(); it != db.cend(); it++)
-  {
-    if (it->first == "local_time")
+    case 2:
     {
-      printf("%s -> %s\n", it->first.c_str(),
-             it->second.get_data_read().total_time.c_str());
+      this->add_data_UI();
+      break;
     }
-    else
+    case 3:
     {
-      bool tmp_flag = it->second.get_run();
-      string tmps = "";
-      if (tmp_flag)
-      {
-        tmps = "run";
-      }
-      else
-      {
-        tmps = "stop";
-      }
-      printf("%s -> %s   stat -> %s\n", it->first.c_str(),
-             it->second.get_data_read().total_time.c_str(), tmps.c_str());
+      this->del_data_UI();
+      break;
+    }
+    case 4:
+    {
+      this->timer_set();
+      break;
+    }
+    case 5:
+    {
+      this->timer_run();
+      this->run_stat();
+      break;
+    }
     }
   }
 }
+
+void UI::timer_set()
+{
+  while (1)
+  {
+    printf("\n====================== Timer Set ======================\n");
+    printf("[1] set -> Run   [2] set -> stop\n");
+    int buf;
+    string buf_s;
+    cin >> buf;
+    cin.ignore();
+    if (buf == 1)
+    {
+      printf("name ? input plz\n");
+      getline(cin, buf_s);
+
+      int ret0 = this->ctl.set_run_Ctl(buf_s, true);
+      this->check_UI(ret0, "set_run_Ctl");
+
+      this->stat();
+      break;
+    }
+    else if (buf == 2)
+    {
+      printf("name ? input plz\n");
+      getline(cin, buf_s);
+
+      int ret0 = this->ctl.set_run_Ctl(buf_s, false);
+      this->check_UI(ret0, "set_run_Ctl");
+
+      this->stat();
+      break;
+    }
+    else
+    {
+      printf("plz input 1 or 2\n");
+    }
+  }
+}
+
+void UI::timer_run()
+{
+  int ret1 = this->ctl.alarm();
+  this->check_UI(ret1, "alarm");
+
+  int ret2 = this->ctl.sig_alrm();
+  this->check_UI(ret2, "sig_alrm");
+
+  int ret3 = this->ctl.sig_int();
+  this->check_UI(ret3, "sig_int");
+
+  printf("timer_run");
+  return;
+}
+
+void UI::check_UI(const int ret, const string &name)
+{
+  if (ret != 0)
+  {
+    printf("failed %s\n", name.c_str());
+  }
+  else
+  {
+    printf("success %s\n", name.c_str());
+  }
+  return;
+}
+// 1분 주기 누적값 출력
+// 시그널 받으면 세팅으로 넘어감
 
 void UI::add_data_UI()
 {
@@ -76,10 +131,79 @@ void UI::add_data_UI()
   if (flag == true)
   {
     printf("success add data %s\n\n", buf.c_str());
+    this->stat();
   }
   else
   {
     printf("before using name.. %s\n\n", buf.c_str());
   }
+  return;
+}
+
+void UI::del_data_UI()
+{
+  printf("input data name\n");
+  string buf;
+  getline(cin, buf);
+  bool flag = this->ctl.del_data(buf);
+  if (flag == true)
+  {
+    printf("success del data %s\n\n", buf.c_str());
+    this->stat();
+  }
+  else
+  {
+    printf("before using name.. %s\n\n", buf.c_str());
+  }
+  return;
+}
+
+void UI::stat()
+{
+  printf("\n====================== Timer Stat ======================\n");
+  const map<string, Data> &db = this->ctl.get_db_read();
+
+  this->ctl.get_l_time();
+  for (auto it = db.cbegin(); it != db.cend(); it++)
+  {
+    if (it->first == "local_time")
+    {
+      printf("%s -> %s\n", it->first.c_str(),
+             it->second.get_data_read().time_s.c_str());
+    }
+    else
+    {
+      bool tmp_flag = it->second.get_run();
+      auto &tmp_read = it->second.get_data_read();
+      string total_time = this->ctl.convert(tmp_read.total_time);
+
+      string tmps = "";
+      if (tmp_flag)
+      {
+        tmps = "run";
+      }
+      else
+      {
+        tmps = "stop";
+      }
+      printf("%s -> %s   stat -> %s\n\n", it->first.c_str(), total_time.c_str(),
+             tmps.c_str());
+    }
+  }
+}
+
+void UI::run_stat()
+{
+  while (!UI::sig_int_flag)
+  {
+    this->stat();
+    sleep(60);
+    if (UI::sig_int_flag == true)
+    {
+      break;
+    }
+  }
+  UI::sig_int_flag = true;
+  printf("\t breck run_stat() \n");
   return;
 }

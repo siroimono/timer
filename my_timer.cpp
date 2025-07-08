@@ -8,10 +8,15 @@ int main(int argc, char **argv)
   {
     Control ctl;
     UI ui(ctl);
-    ui.run();
+    ui.menu();
   }
   catch (Exception err)
   {
+    printf("err type == %s\n"
+           "err name == %s\n"
+           "err no ==%d\n",
+           err.get_err_type().c_str(), err.get_err_name().c_str(),
+           err.get_err_no());
   }
   return 0;
 }
