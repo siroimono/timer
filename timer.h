@@ -3,11 +3,13 @@
 #include <exception>
 #include <iostream>
 #include <map>
+#include <stack>
 #include <string>
 #include <sys/types.h>
 #include <vector>
 //====================C++===================
 
+#include <ctype.h>
 #include <fcntl.h> // open()
 #include <signal.h>
 #include <stdio.h>
@@ -27,6 +29,22 @@ struct _Data
 {
   time_t total_time;
   string time_s;
+};
+
+struct io_Data
+{
+
+  char name_local[12];
+  time_t local; // 년 월 일 까지만 저장
+
+  char name_1[20];
+  time_t time_1;
+
+  char name_2[20];
+  time_t time_2;
+
+  char name_3[20];
+  time_t time_3;
 };
 
 class Data
@@ -62,6 +80,8 @@ public:
   Control();
   ~Control();
 
+  static int back_up();
+
   int get_l_time(); // 현재시간 값 확인 후 대입
 
   map<string, Data> &get_db();
@@ -71,6 +91,7 @@ public:
   bool del_data(string &name);
 
   string convert(time_t t);
+  time_t convert_time(const string &s_time);
   void convert_2(string &s);
   string convert_l(const time_t &t);
 
@@ -82,8 +103,12 @@ public:
   int sig_int();
   static void sig_int_handler(int sig, siginfo_t *sig_info, void *vvv);
 
+  int sig_hup();
+  static void sig_hup_handler(int sig, siginfo_t *sig_ingo, void *vvv);
+
   // bool find_data(const string &name);
   const int set_run_Ctl(const string &name, const string &flag);
+  const int set_Data_time_ctl(const string &s_time, const string &name);
 };
 
 class UI
@@ -93,6 +118,8 @@ private:
 
 public:
   static bool sig_int_flag;
+  static void *th_func(void *vp);
+  static bool hup_print();
 
   UI(Control &ctl);
   ~UI();
@@ -111,6 +138,8 @@ public:
 
   void run_stat();
 
+  void save_UI();
+
   void check_UI(const int, const string &name);
 };
 
@@ -122,7 +151,7 @@ private:
   int err_no;
 
 public:
-  Exception(string &err_type, string &err_name, int err_no);
+  Exception(const string &err_type, string &err_name, int err_no);
   ~Exception();
 
   const string &get_err_type() const;
@@ -130,6 +159,18 @@ public:
   const int &get_err_no() const;
 };
 
+class RAII_fd
+{
+private:
+  int fd;
+  string name;
+
+public:
+  RAII_fd(int fd, const string &name);
+  ~RAII_fd();
+
+  int get_fd();
+};
 /*
 class Sig_Guard
 {

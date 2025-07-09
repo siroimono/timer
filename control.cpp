@@ -1,6 +1,21 @@
 #include "timer.h"
+#include <csignal>
+#include <fcntl.h>
+#include <sys/types.h>
+#include <unistd.h>
 
 using namespace std;
+
+/*
+ off_t cur_offset = lseek(a_fd.get_fd(), 0, SEEK_END);
+  if (cur_offset == -1)
+  {
+    string tmp1("void Control::back_up() -> lseek()");
+    string tmp2((strerror(errno)));
+    Exception err(tmp1, tmp2, (int)errno);
+    throw err;
+  }
+*/
 
 Control::Control()
 {
@@ -11,6 +26,59 @@ Control::~Control()
 }
 
 map<string, Data> Control::db; // static
+
+int Control::back_up() // static
+{
+  io_Data back_up_data;
+  stack<pair<string, time_t>> stk;
+
+  for (auto it = Control::db.begin(); it != Control::db.end(); it++)
+  {
+    if (it->first == "local_time")
+    {
+      strcpy(back_up_data.name_local, "local_time");
+
+      struct tm st_tm = {};
+      time_t t = it->second.get_data_read().total_time;
+      auto flag_localtime = localtime_r(&t, &st_tm);
+      if (flag_localtime == NULL)
+      {
+        string tmp1("void Control::back_up() ->  localtime_r");
+        string tmp2((strerror(errno)));
+        Exception err(tmp1, tmp2, (int)errno);
+        throw err;
+      }
+
+      back_up_data.local = t;
+    }
+    else
+    {
+      stk.push({it->first, it->second.get_data().total_time});
+    }
+  }
+
+  while (!stk.empty())
+  {
+    strcpy(back_up_data.name_1, stk.top().first.c_str());
+    back_up_data.time_1 = stk.top().second;
+    stk.pop();
+  }
+
+  int fd = open("back_up.txt", O_RDWR | O_APPEND | O_CREAT, 0755);
+  RAII_fd a_fd(fd, "back_up() open");
+
+  int flag_write = write(a_fd.get_fd(), &back_up_data, sizeof(io_Data));
+
+  if (flag_write == -1)
+  {
+    string tmp1("void Control::back_up() -> write()");
+    string tmp2((strerror(errno)));
+    Exception err(tmp1, tmp2, (int)errno);
+    throw err;
+  }
+
+  return 0;
+}
 
 int Control::get_l_time()
 {
@@ -50,13 +118,26 @@ void Control::convert_2(string &s)
 string Control::convert(time_t t)
 {
   string hours = to_string(t / 3600);
-  string min = to_string(t / 60);
+  string min = to_string((t % 3600) / 60);
   string sec = to_string(t % 60);
   this->convert_2(hours);
   this->convert_2(min);
   this->convert_2(sec);
 
   return (hours + ":" + min + ":" + sec);
+}
+
+time_t Control::convert_time(const string &s_time)
+{
+  string hours = s_time.substr(0, 2);
+  string min = s_time.substr(3, 2);
+  string sec = s_time.substr(6);
+
+  time_t hours_t = (time_t)atoi(hours.c_str()) * 3600;
+  time_t min_t = (time_t)atoi(min.c_str()) * 60;
+  time_t sec_t = (time_t)atoi(sec.c_str());
+
+  return hours_t + min_t + sec_t;
 }
 
 string Control::convert_l(const time_t &t)
@@ -76,7 +157,45 @@ string Control::convert_l(const time_t &t)
   string month = to_string(local_t.tm_mon + 1);
   string day = to_string(local_t.tm_mday);
 
-  string wday = to_string(local_t.tm_wday);
+  string wday;
+  switch (local_t.tm_wday)
+  {
+  case 1:
+  {
+    wday = "[Mon]";
+    break;
+  }
+  case 2:
+  {
+    wday = "[Tue]";
+    break;
+  }
+  case 3:
+  {
+    wday = "[Wed]";
+    break;
+  }
+  case 4:
+  {
+    wday = "[Thur]";
+    break;
+  }
+  case 5:
+  {
+    wday = "[Fri]";
+    break;
+  }
+  case 6:
+  {
+    wday = "[Sat]";
+    break;
+  }
+  case 0:
+  {
+    wday = "[Sun]";
+    break;
+  }
+  }
 
   string hours = to_string(local_t.tm_hour);
   string min = to_string(local_t.tm_min);
@@ -86,8 +205,8 @@ string Control::convert_l(const time_t &t)
   convert_2(min);
   convert_2(sec);
 
-  return (year + "." + month + "." + day + "   [" + hours + ":" + min + ":" +
-          sec + "]\n");
+  return (year + "." + month + "." + day + " " + wday + "   [" + hours + ":" +
+          min + ":" + sec + "]\n");
 }
 
 map<string, Data> &Control::get_db()
@@ -107,6 +226,11 @@ bool Control::add_data(string &name)
   {
     return false;
   }
+  if (db.size() > 4)
+  {
+    return false;
+  }
+
   db[name].get_data().total_time = 0;
   db[name].set_run(false);
   return true;
@@ -193,6 +317,38 @@ void Control::sig_int_handler(int sig, siginfo_t *sig_info, void *vvv)
 { // static
   UI::sig_int_flag = true;
 }
+
+int Control::sig_hup()
+{
+  struct sigaction sa;
+  sa.sa_flags = SA_SIGINFO;
+  sa.sa_sigaction = sig_hup_handler;
+  sigemptyset(&sa.sa_mask);
+
+  int flag = sigaction(SIGHUP, &sa, NULL);
+  if (flag == -1)
+  {
+    string tmp1("int Control::sig_hup()");
+    string tmp2((strerror(errno)));
+    Exception err(tmp1, tmp2, (int)errno);
+    throw err;
+  }
+  return 0;
+}
+
+void Control::sig_hup_handler(int sig, siginfo_t *sig_ingo, void *vvv)
+{ // static
+  bool flag = UI::hup_print();
+  if (flag == true)
+  {
+    Control::back_up();
+  }
+  union sigval s_val = {};
+  pid_t pid = getpid();
+  sigqueue(pid, 1, s_val);
+  return;
+}
+
 /*
 bool Control::find_data(const string &name)
 {
@@ -242,6 +398,19 @@ const int Control::set_run_Ctl(const string &name, const string &flag)
       }
       return 0;
     }
+  }
+  return -1;
+}
+
+const int Control::set_Data_time_ctl(const string &s_time, const string &name)
+{
+  auto it = this->db.find(name);
+
+  if (it != db.end())
+  {
+    time_t t = convert_time(s_time);
+    this->db[name].set_data_time(t);
+    return 0;
   }
   return -1;
 }

@@ -6,7 +6,7 @@ CFLAGS = -Wall -g
 TARGET = my_timer
 
 # 개별 오브젝트 파일들
-OBJS = my_timer.o ui.o exception.o data.o control.o
+OBJS = my_timer.o ui.o exception.o data.o control.o RAII_fd.o
 
 # 1. 최종 타겟: my_timer 실행파일
 $(TARGET): $(OBJS)
@@ -28,6 +28,9 @@ data.o: data.cpp timer.h
 control.o: control.cpp timer.h
 	$(CC) $(CFLAGS) -c control.cpp -o control.o
 	
+RAII_fd.o: RAII_fd.cpp timer.h
+	$(CC) $(CFLAGS) -c RAII_fd.cpp -o  RAII_fd.o
+
 # 3. 청소용
 clean:
 	rm -f *.o $(TARGET)

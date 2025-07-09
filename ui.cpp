@@ -1,5 +1,6 @@
 #include "timer.h"
 #include <csignal>
+#include <pthread.h>
 
 using namespace std;
 
@@ -10,7 +11,35 @@ UI::~UI()
 {
 }
 
-bool UI::sig_int_flag = false; // static
+// ==================== static ====================
+bool UI::sig_int_flag = false;
+
+void *UI::th_func(void *vp)
+{
+  UI *p_this = (UI *)vp;
+  p_this->run_stat();
+  return NULL;
+}
+
+bool UI::hup_print()
+{
+  printf("want cur data write -> [Y]\n");
+
+  sigset_t st;
+  sigemptyset(&st);
+  sigfillset(&st);
+  sigprocmask(SIG_BLOCK, &st, NULL);
+  string buf;
+  getline(cin, buf);
+  sigprocmask(SIG_UNBLOCK, &st, NULL);
+  if (buf.empty() || buf == "Y" || buf == "y")
+  {
+    return true;
+  }
+  return false;
+}
+
+// ==================== static ====================
 
 void UI::menu()
 {
@@ -22,7 +51,8 @@ void UI::menu()
   while (buf_s != "0")
   {
     printf("\n====================== Timer Menu ======================\n");
-    printf("[1] stat   [2] add   [3] del   [4] set   [5] run\n");
+    printf("[1] stat   [2] add   [3] del   [4] set   [5] run\n"
+           "[6] save   [0] eixt\n");
 
     sigprocmask(SIG_BLOCK, &st, NULL);
     getline(cin, buf_s);
@@ -47,7 +77,30 @@ void UI::menu()
     else if (buf_s == "5")
     {
       this->timer_run();
-      this->run_stat();
+      pthread_t tid;
+
+      int flag_pthread_create =
+          pthread_create(&tid, NULL, th_func, (void *)this);
+      if (flag_pthread_create != 0)
+      {
+        string tmp1("pthread_create(&tid, NULL, th_func, (void *)this)\n ");
+        string tmp2((strerror(errno)));
+        Exception err(tmp1, tmp2, (int)errno);
+        throw err;
+      }
+
+      int flag_pthread_join = pthread_join(tid, NULL);
+      if (flag_pthread_join != 0)
+      {
+        string tmp1("pthread_join(tid, NULL)\n");
+        string tmp2((strerror(errno)));
+        Exception err(tmp1, tmp2, (int)errno);
+        throw err;
+      }
+    }
+    else if (buf_s == "6")
+    {
+      this->save_UI();
     }
     else
     {
@@ -67,12 +120,52 @@ void UI::timer_set()
   string buf_org;
   getline(cin, buf_org);
 
-  printf("[1] run   [2] stop\n");
+  printf("[1] run   [2] stop   [3] edit\n");
   string buf_s;
   getline(cin, buf_s);
 
-  int ret0 = this->ctl.set_run_Ctl(buf_org, buf_s);
-  this->check_UI(ret0, "set_run_Ctl");
+  if (buf_s == "1" || buf_s == "2")
+  {
+    int ret0 = this->ctl.set_run_Ctl(buf_org, buf_s);
+    this->check_UI(ret0, "set_run_Ctl");
+  }
+  else if (buf_s == "3")
+  {
+    printf(">>>   **:**:**   <<< \n");
+    string set_t;
+    getline(cin, set_t);
+    if (set_t.size() == 8)
+    {
+      string check_1 =
+          set_t.substr(0, 2) + set_t.substr(3, 2) + set_t.substr(6);
+      string check_2 = set_t.substr(2, 1) + set_t.substr(5, 1);
+
+      bool flag_1 = all_of(check_1.begin(), check_1.end(), [](char x)
+                           { return isdigit(x) > 0 ? true : false; });
+
+      bool flag_2 = all_of(check_2.begin(), check_2.end(),
+                           [](char x) { return x == ':' ? true : false; });
+
+      if (flag_1 && flag_2)
+      {
+        int ret1 = this->ctl.set_Data_time_ctl(set_t, buf_org);
+        this->check_UI(ret1, "set_Data_time_ctl");
+      }
+      else
+      {
+        printf("not available value\n");
+      }
+    }
+    else
+    {
+      printf("not available value\n");
+    }
+  }
+  else
+  {
+    printf("not available value\n");
+    return;
+  }
 
   this->stat();
   sigprocmask(SIG_UNBLOCK, &st, NULL);
@@ -114,9 +207,14 @@ void UI::add_data_UI()
   sigemptyset(&st);
   sigfillset(&st);
   sigprocmask(SIG_BLOCK, &st, NULL);
-  printf("input data name\n");
+  printf("input data name   ! ~19byte\n");
   string buf;
   getline(cin, buf);
+  if (buf.size() > 19)
+  {
+    printf("buffer over flow\n");
+    return;
+  }
   bool flag = this->ctl.add_data(buf);
   if (flag == true)
   {
@@ -125,7 +223,7 @@ void UI::add_data_UI()
   }
   else
   {
-    printf("before using name.. %s\n\n", buf.c_str());
+    printf("before using name.. or size up to 4 %s\n\n", buf.c_str());
   }
   sigprocmask(SIG_UNBLOCK, &st, NULL);
 
@@ -161,19 +259,18 @@ void UI::stat()
   const map<string, Data> &db = this->ctl.get_db_read();
 
   this->ctl.get_l_time();
+  auto it = db.find("local_time");
+
+  printf("%s -> %s\n", it->first.c_str(),
+         it->second.get_data_read().time_s.c_str());
+
   for (auto it = db.cbegin(); it != db.cend(); it++)
   {
-    if (it->first == "local_time")
-    {
-      printf("%s -> %s\n", it->first.c_str(),
-             it->second.get_data_read().time_s.c_str());
-    }
-    else
+    if (it->first != "local_time")
     {
       bool tmp_flag = it->second.get_run();
       auto &tmp_read = it->second.get_data_read();
       string total_time = this->ctl.convert(tmp_read.total_time);
-
       string tmps = "";
       if (tmp_flag)
       {
@@ -191,6 +288,7 @@ void UI::stat()
 
 void UI::run_stat()
 {
+  UI::sig_int_flag = false;
   while (1)
   {
     this->stat();
@@ -202,5 +300,19 @@ void UI::run_stat()
   }
   UI::sig_int_flag = false;
   printf("\t breck run_stat() \n");
+  return;
+}
+
+void UI::save_UI()
+{
+  int flag = Control::back_up();
+  if (flag == 0)
+  {
+    printf("success Control::back_up()\n");
+  }
+  else
+  {
+    printf("failed Control::back_up()\n");
+  }
   return;
 }
