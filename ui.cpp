@@ -52,7 +52,7 @@ void UI::menu()
   {
     printf("\n====================== Timer Menu ======================\n");
     printf("[1] stat   [2] add   [3] del   [4] set   [5] run\n"
-           "[6] save   [0] eixt\n");
+           "[6] save   [7] read  [0] eixt\n");
 
     sigprocmask(SIG_BLOCK, &st, NULL);
     getline(cin, buf_s);
@@ -101,6 +101,10 @@ void UI::menu()
     else if (buf_s == "6")
     {
       this->save_UI();
+    }
+    else if (buf_s == "7")
+    {
+      this->read_UI();
     }
     else
     {
@@ -314,5 +318,60 @@ void UI::save_UI()
   {
     printf("failed Control::back_up()\n");
   }
+  return;
+}
+
+void UI::read_UI()
+{
+  auto read_data = this->ctl.read_ctl();
+
+  printf("\n====================== read data ======================\n");
+
+  auto it = read_data.find("local_time");
+
+  printf("%s -> %s\n", it->first.c_str(),
+         it->second.get_data_read().time_s.c_str());
+
+  for (auto it = read_data.cbegin(); it != read_data.cend(); it++)
+  {
+    if (it->first != "local_time")
+    {
+      bool tmp_flag = it->second.get_run();
+      auto &tmp_read = it->second.get_data_read();
+      string total_time = this->ctl.convert(tmp_read.total_time);
+      string tmps = "";
+      if (tmp_flag)
+      {
+        tmps = "run";
+      }
+      else
+      {
+        tmps = "stop";
+      }
+      printf("%s -> %s   stat -> %s\n\n", it->first.c_str(), total_time.c_str(),
+             tmps.c_str());
+    }
+  }
+  sigset_t st;
+  sigemptyset(&st);
+  sigfillset(&st);
+
+  sigprocmask(SIG_BLOCK, &st, NULL);
+  printf("want load? [Y]\n");
+  string buf;
+  getline(cin, buf);
+  sigprocmask(SIG_UNBLOCK, &st, NULL);
+
+  if (buf.empty() || buf == "Y" || buf == "y")
+  {
+    this->ctl.change_db(read_data);
+    printf("success load\n");
+  }
+  else
+  {
+    printf("not load\n");
+    return;
+  }
+
   return;
 }

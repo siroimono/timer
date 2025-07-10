@@ -47,6 +47,23 @@ struct io_Data
   time_t time_3;
 };
 
+/*
+struct load_Data
+{
+  vector<string> name;
+  vector<string> time;
+
+  string name_1;
+  string time_1;
+
+  string name_2;
+  string time_2;
+
+  string name_3;
+  string time_3;
+};
+*/
+
 class Data
 {
 private:
@@ -82,10 +99,14 @@ public:
 
   static int back_up();
 
+  const map<string, Data> read_ctl();
+
   int get_l_time(); // 현재시간 값 확인 후 대입
 
   map<string, Data> &get_db();
   const map<string, Data> &get_db_read() const;
+
+  void change_db(const map<string, Data> load_data);
 
   bool add_data(string &name);
   bool del_data(string &name);
@@ -94,6 +115,7 @@ public:
   time_t convert_time(const string &s_time);
   void convert_2(string &s);
   string convert_l(const time_t &t);
+  // const load_Data convert_io(io_Data &io_data) const;
 
   int alarm();    // 60초 간격 SIGALRM
   int sig_alrm(); // SIGALRM signal 대응 함수
@@ -139,6 +161,12 @@ public:
   void run_stat();
 
   void save_UI();
+
+  void read_UI();
+
+  void read_print_UI();
+
+  bool read_UI_empty(char *c_p, time_t t);
 
   void check_UI(const int, const string &name);
 };

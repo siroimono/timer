@@ -6,17 +6,6 @@
 
 using namespace std;
 
-/*
- off_t cur_offset = lseek(a_fd.get_fd(), 0, SEEK_END);
-  if (cur_offset == -1)
-  {
-    string tmp1("void Control::back_up() -> lseek()");
-    string tmp2((strerror(errno)));
-    Exception err(tmp1, tmp2, (int)errno);
-    throw err;
-  }
-*/
-
 Control::Control()
 {
 }
@@ -29,8 +18,8 @@ map<string, Data> Control::db; // static
 
 int Control::back_up() // static
 {
-  io_Data back_up_data;
-  stack<pair<string, time_t>> stk;
+  io_Data back_up_data = {};
+  vector<pair<string, time_t>> stk;
 
   for (auto it = Control::db.begin(); it != Control::db.end(); it++)
   {
@@ -38,8 +27,9 @@ int Control::back_up() // static
     {
       strcpy(back_up_data.name_local, "local_time");
 
-      struct tm st_tm = {};
+      // struct tm st_tm = {};
       time_t t = it->second.get_data_read().total_time;
+      /*
       auto flag_localtime = localtime_r(&t, &st_tm);
       if (flag_localtime == NULL)
       {
@@ -47,21 +37,32 @@ int Control::back_up() // static
         string tmp2((strerror(errno)));
         Exception err(tmp1, tmp2, (int)errno);
         throw err;
-      }
+      }*/
 
       back_up_data.local = t;
     }
     else
     {
-      stk.push({it->first, it->second.get_data().total_time});
+      stk.push_back({it->first, it->second.get_data().total_time});
     }
   }
 
-  while (!stk.empty())
+  if (stk.size() > 0)
   {
-    strcpy(back_up_data.name_1, stk.top().first.c_str());
-    back_up_data.time_1 = stk.top().second;
-    stk.pop();
+    strcpy(back_up_data.name_1, stk[0].first.c_str());
+    back_up_data.time_1 = stk[0].second;
+  }
+
+  if (stk.size() > 1)
+  {
+    strcpy(back_up_data.name_2, stk[1].first.c_str());
+    back_up_data.time_2 = stk[1].second;
+  }
+
+  if (stk.size() > 2)
+  {
+    strcpy(back_up_data.name_3, stk[2].first.c_str());
+    back_up_data.time_3 = stk[2].second;
   }
 
   int fd = open("back_up.txt", O_RDWR | O_APPEND | O_CREAT, 0755);
@@ -78,6 +79,83 @@ int Control::back_up() // static
   }
 
   return 0;
+}
+
+const map<string, Data> Control::read_ctl()
+{
+  int fd = open("back_up.txt", O_RDONLY | O_CREAT, 0755);
+  RAII_fd a_fd(fd, "read -> open");
+
+  off_t end_offset = lseek(a_fd.get_fd(), 0, SEEK_END);
+  if (end_offset == -1)
+  {
+    string tmp1("int Control::read_ctl() -> lseek()");
+    string tmp2((strerror(errno)));
+    Exception err(tmp1, tmp2, (int)errno);
+    throw err;
+  }
+
+  if (end_offset < (off_t)sizeof(io_Data))
+  {
+    int flag_tmp = lseek(a_fd.get_fd(), 0, SEEK_SET);
+    if (flag_tmp == -1)
+    {
+      string tmp1("int Control::read_ctl() -> lseek()");
+      string tmp2((strerror(errno)));
+      Exception err(tmp1, tmp2, (int)errno);
+      throw err;
+    }
+  }
+  else
+  {
+    int flag_tmp = lseek(a_fd.get_fd(), -sizeof(io_Data), SEEK_END);
+    if (flag_tmp == -1)
+    {
+      string tmp1("int Control::read_ctl() -> lseek()");
+      string tmp2((strerror(errno)));
+      Exception err(tmp1, tmp2, (int)errno);
+      throw err;
+    }
+  }
+
+  struct io_Data buf_read = {};
+  int flag_read = read(a_fd.get_fd(), &buf_read, sizeof(io_Data));
+  if (flag_read == -1)
+  {
+    string tmp1("int Control::read_ctl() -> read()");
+    string tmp2((strerror(errno)));
+    Exception err(tmp1, tmp2, (int)errno);
+    throw err;
+  }
+
+  map<string, Data> l_data;
+  if (buf_read.name_local[0] != '\0')
+  {
+    l_data[buf_read.name_local].get_data().total_time = buf_read.local;
+    l_data[buf_read.name_local].set_data_s(this->convert_l(buf_read.local));
+  }
+  if (buf_read.name_1[0] != '\0')
+  {
+    l_data[buf_read.name_1].get_data().total_time = buf_read.time_1;
+    l_data[buf_read.name_1].set_run(false);
+  }
+  if (buf_read.name_2[0] != '\0')
+  {
+    l_data[buf_read.name_2].get_data().total_time = buf_read.time_2;
+    l_data[buf_read.name_2].set_run(false);
+  }
+  if (buf_read.name_3[0] != '\0')
+  {
+    l_data[buf_read.name_3].get_data().total_time = buf_read.time_3;
+    l_data[buf_read.name_3].set_run(false);
+  }
+  return l_data;
+}
+
+void Control::change_db(const map<string, Data> load_data)
+{
+  Control::db = load_data;
+  return;
 }
 
 int Control::get_l_time()
