@@ -333,8 +333,8 @@ bool Control::del_data(string &name)
 int Control::alarm()
 {
   struct itimerval st_itime = {};
-  st_itime.it_interval.tv_sec = 5;
-  st_itime.it_value.tv_sec = 5;
+  st_itime.it_interval.tv_sec = 60;
+  st_itime.it_value.tv_sec = 60;
 
   int flag = setitimer(ITIMER_REAL, &st_itime, NULL);
   if (flag == -1)
@@ -373,7 +373,7 @@ void Control::sig_alrm_handler(int sig, siginfo_t *sig_info, void *vvv)
   {
     if (it->second.get_run() == true)
     {
-      it->second.get_data().total_time += 5;
+      it->second.get_data().total_time += 60;
     }
   }
 }

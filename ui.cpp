@@ -92,6 +92,10 @@ void UI::menu()
         throw err;
       }
 
+      sigset_t st;
+      sigemptyset(&st);
+      sigfillset(&st);
+      sigprocmask(SIG_BLOCK, &st, NULL);
       int flag_pthread_join = pthread_join(tid, NULL);
       if (flag_pthread_join != 0)
       {
@@ -100,6 +104,7 @@ void UI::menu()
         Exception err(tmp1, tmp2, (int)errno);
         throw err;
       }
+      sigprocmask(SIG_BLOCK, &st, NULL);
     }
     else if (buf_s == "6")
     {
@@ -303,7 +308,7 @@ void UI::run_stat()
   while (1)
   {
     this->stat();
-    sleep(5);
+    sleep(60);
     if (UI::sig_int_flag == true)
     {
       break;
