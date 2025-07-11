@@ -154,7 +154,7 @@ public:
   UI(Control &ctl);
   ~UI();
 
-  void menu();
+  void menu(); //   void menu(this* 0);
 
   void add_data_UI();
 
@@ -162,7 +162,7 @@ public:
 
   void timer_set();
 
-  void timer_run();
+  int timer_run();
 
   void stat();
 

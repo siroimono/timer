@@ -332,6 +332,20 @@ bool Control::del_data(string &name)
 
 int Control::alarm()
 {
+  int tmpi = 0;
+  for (auto &v : Control::db)
+  {
+    if (v.second.get_run() == true)
+    {
+      tmpi++;
+    }
+  }
+
+  if (tmpi <= 0)
+  {
+    return -1;
+  }
+
   struct itimerval st_itime = {};
   st_itime.it_interval.tv_sec = 60;
   st_itime.it_value.tv_sec = 60;
@@ -399,6 +413,10 @@ int Control::sig_int()
 void Control::sig_int_handler(int sig, siginfo_t *sig_info, void *vvv)
 { // static
   UI::sig_int_flag = true;
+  for (auto it = Control::db.begin(); it != Control::db.end(); it++)
+  {
+    it->second.set_run(false);
+  }
 }
 
 int Control::sig_hup()

@@ -79,32 +79,35 @@ void UI::menu()
     }
     else if (buf_s == "5")
     {
-      this->timer_run();
-      pthread_t tid;
-
-      int flag_pthread_create =
-          pthread_create(&tid, NULL, th_func, (void *)this);
-      if (flag_pthread_create != 0)
+      int flag_timer_run = this->timer_run();
+      if (flag_timer_run == 0)
       {
-        string tmp1("pthread_create(&tid, NULL, th_func, (void *)this)\n ");
-        string tmp2((strerror(errno)));
-        Exception err(tmp1, tmp2, (int)errno);
-        throw err;
-      }
+        pthread_t tid;
 
-      sigset_t st;
-      sigemptyset(&st);
-      sigfillset(&st);
-      sigprocmask(SIG_BLOCK, &st, NULL);
-      int flag_pthread_join = pthread_join(tid, NULL);
-      if (flag_pthread_join != 0)
-      {
-        string tmp1("pthread_join(tid, NULL)\n");
-        string tmp2((strerror(errno)));
-        Exception err(tmp1, tmp2, (int)errno);
-        throw err;
+        int flag_pthread_create =
+            pthread_create(&tid, NULL, th_func, (void *)this);
+        if (flag_pthread_create != 0)
+        {
+          string tmp1("pthread_create(&tid, NULL, th_func, (void *)this)\n ");
+          string tmp2((strerror(errno)));
+          Exception err(tmp1, tmp2, (int)errno);
+          throw err;
+        }
+
+        sigset_t st;
+        sigemptyset(&st);
+        sigfillset(&st);
+        sigprocmask(SIG_BLOCK, &st, NULL);
+        int flag_pthread_join = pthread_join(tid, NULL);
+        if (flag_pthread_join != 0)
+        {
+          string tmp1("pthread_join(tid, NULL)\n");
+          string tmp2((strerror(errno)));
+          Exception err(tmp1, tmp2, (int)errno);
+          throw err;
+        }
+        sigprocmask(SIG_BLOCK, &st, NULL);
       }
-      sigprocmask(SIG_BLOCK, &st, NULL);
     }
     else if (buf_s == "6")
     {
@@ -187,10 +190,14 @@ void UI::timer_set()
   sigprocmask(SIG_UNBLOCK, &st, NULL);
 }
 
-void UI::timer_run()
+int UI::timer_run()
 {
   int ret1 = this->ctl.alarm();
-  this->check_UI(ret1, "alarm");
+  if (ret1 == -1)
+  {
+    printf("stat all of stop\n");
+    return -1;
+  }
 
   int ret2 = this->ctl.sig_alrm();
   this->check_UI(ret2, "sig_alrm");
@@ -199,7 +206,7 @@ void UI::timer_run()
   this->check_UI(ret3, "sig_int");
 
   printf("timer_run");
-  return;
+  return 0;
 }
 
 void UI::check_UI(const int ret, const string &name)
@@ -316,6 +323,7 @@ void UI::run_stat()
   }
   UI::sig_int_flag = false;
   printf("\t breck run_stat() \n");
+  this->stat();
   return;
 }
 
