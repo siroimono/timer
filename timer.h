@@ -17,6 +17,8 @@
 #include <string.h>
 #include <sys/stat.h> // mode_t
 #include <sys/time.h>
+#include <sys/types.h>
+#include <sys/wait.h>
 #include <time.h>
 #include <unistd.h> // write(), close()
 //=====================C=====================
@@ -131,6 +133,12 @@ public:
   // bool find_data(const string &name);
   const int set_run_Ctl(const string &name, const string &flag);
   const int set_Data_time_ctl(const string &s_time, const string &name);
+
+  int exit_save_ctl();
+
+  const vector<map<string, Data>> log_read_ctl();
+
+  int log_dell_ctl();
 };
 
 class UI
@@ -163,6 +171,14 @@ public:
   void save_UI();
 
   void read_UI();
+
+  void exit_save_UI();
+
+  void log_UI();
+
+  void log_print_UI();
+
+  void log_dell_UI();
 
   void read_print_UI();
 

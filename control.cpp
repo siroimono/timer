@@ -127,6 +127,11 @@ const map<string, Data> Control::read_ctl()
     Exception err(tmp1, tmp2, (int)errno);
     throw err;
   }
+  else if (flag_read == 0)
+  {
+    static map<string, Data> empty_db;
+    return empty_db;
+  }
 
   map<string, Data> l_data;
   if (buf_read.name_local[0] != '\0')
@@ -491,4 +496,131 @@ const int Control::set_Data_time_ctl(const string &s_time, const string &name)
     return 0;
   }
   return -1;
+}
+
+int Control::exit_save_ctl()
+{
+  Control::back_up();
+  return 0;
+}
+
+const vector<map<string, Data>> Control::log_read_ctl()
+{
+  int fd = open("back_up.txt", O_RDONLY | O_CREAT, 0755);
+  RAII_fd a_fd(fd, "read -> open");
+
+  vector<map<string, Data>> ret;
+
+  off_t empty_check = lseek(a_fd.get_fd(), 0, SEEK_END);
+  if (empty_check == -1)
+  {
+    string tmp1(
+        "const vector<map<string, Data>> Control::log_read_ctl() -> lseek()");
+    string tmp2((strerror(errno)));
+    Exception err(tmp1, tmp2, (int)errno);
+    throw err;
+  }
+
+  if (empty_check == 0)
+  {
+    static vector<map<string, Data>> empty_db;
+    return empty_db;
+  }
+
+  off_t recovery_offset = lseek(a_fd.get_fd(), 0, SEEK_SET);
+  if (recovery_offset == -1)
+  {
+    string tmp1(
+        "const vector<map<string, Data>> Control::log_read_ctl() -> lseek()");
+    string tmp2((strerror(errno)));
+    Exception err(tmp1, tmp2, (int)errno);
+    throw err;
+  }
+
+  int flag_read = 0;
+  do
+  {
+    struct io_Data buf_read = {};
+    flag_read = read(a_fd.get_fd(), &buf_read, sizeof(io_Data));
+    if (flag_read == -1)
+    {
+      string tmp1("int Control::read_ctl() -> read()");
+      string tmp2((strerror(errno)));
+      Exception err(tmp1, tmp2, (int)errno);
+      throw err;
+    }
+    else if (flag_read == 0)
+    {
+      break;
+    }
+
+    map<string, Data> l_data;
+    if (buf_read.name_local[0] != '\0')
+    {
+      l_data[buf_read.name_local].get_data().total_time = buf_read.local;
+      l_data[buf_read.name_local].set_data_s(this->convert_l(buf_read.local));
+    }
+    if (buf_read.name_1[0] != '\0')
+    {
+      l_data[buf_read.name_1].get_data().total_time = buf_read.time_1;
+      l_data[buf_read.name_1].set_run(false);
+    }
+    if (buf_read.name_2[0] != '\0')
+    {
+      l_data[buf_read.name_2].get_data().total_time = buf_read.time_2;
+      l_data[buf_read.name_2].set_run(false);
+    }
+    if (buf_read.name_3[0] != '\0')
+    {
+      l_data[buf_read.name_3].get_data().total_time = buf_read.time_3;
+      l_data[buf_read.name_3].set_run(false);
+    }
+
+    ret.push_back(l_data);
+  } while (flag_read != -1 && flag_read != 0);
+
+  return ret;
+}
+
+int Control::log_dell_ctl()
+{
+  pid_t pid_child = fork();
+  if (pid_child == -1)
+  {
+    string tmp1("void Control::log_dell_ctl() -> fork()");
+    string tmp2((strerror(errno)));
+    Exception err(tmp1, tmp2, (int)errno);
+    throw err;
+  }
+
+  if (pid_child > 0)
+  {
+    int child_pid_status = 0;
+    int flag_waitpid = waitpid(pid_child, &child_pid_status, 0);
+    if (flag_waitpid == -1)
+    {
+      string tmp1("void Control::log_dell_ctl() -> waitpid()");
+      string tmp2((strerror(errno)));
+      Exception err(tmp1, tmp2, (int)errno);
+      throw err;
+    }
+
+    if (WIFEXITED(child_pid_status))
+    {
+      return 0;
+    }
+
+    return -1;
+  }
+
+  char *argv[] = {(char *)"rm", (char *)"back_up.txt", NULL};
+  int flag_execvp = execvp("rm", argv);
+  if (flag_execvp == -1)
+  {
+    string tmp1("void Control::log_dell_ctl() -> execvp()");
+    string tmp2((strerror(errno)));
+    Exception err(tmp1, tmp2, (int)errno);
+    throw err;
+  }
+  return 0;
 }
