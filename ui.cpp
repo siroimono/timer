@@ -54,8 +54,8 @@ void UI::menu()
   while (buf_s != "0")
   {
     printf("\n====================== Timer Menu ======================\n");
-    printf("[1] stat   [2] add   [3] del   [4] set   [5] run\n"
-           "[6] save   [7] read  [8] log   [0] eixt\n");
+    printf("[1] stat   [2] add   [3] del   [4] set      [5] run\n"
+           "[6] save   [7] read  [8] log   [9] medical  [0] eixt\n");
 
     sigprocmask(SIG_BLOCK, &st, NULL);
     getline(cin, buf_s);
@@ -120,6 +120,10 @@ void UI::menu()
     else if (buf_s == "8")
     {
       this->log_UI();
+    }
+    else if (buf_s == "9")
+    {
+      this->medical_UI();
     }
     else if (buf_s == "0")
     {
@@ -510,3 +514,12 @@ void UI::log_dell_UI()
   }
   return;
 }
+
+void UI::medical_UI()
+{ 
+  this->ctl.medical_ctl();
+}
+
+
+
+

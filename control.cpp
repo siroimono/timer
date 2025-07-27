@@ -642,3 +642,167 @@ int Control::log_dell_ctl()
   }
   return 0;
 }
+
+int Control::medical_ctl()
+{
+  this->set_medical();
+  sigset_t st;
+  sigemptyset(&st);
+  sigfillset(&st);
+  sigprocmask(SIG_BLOCK, &st, NULL);
+  //string buf;
+  //getline(cin, buf);
+
+
+  int fd_medical  = open("medical.txt", O_RDWR | O_CREAT, 0755);
+  RAII_fd a_fd_medical (fd_medical, "int Control::medical_ctl() -> open()");
+
+  int ret_lseek_1 = lseek(fd_medical, 0, SEEK_END);
+  if(ret_lseek_1 == 0)
+  {
+    time_t ret_time = time(NULL);
+    check_err::check("medical_ctl() -> time()", ret_time, (time_t)-1);
+
+    struct tm st_time = {};
+    struct tm* ret_localtime = localtime_r((const time_t*)&ret_time, &st_time);
+    check_err::check<struct tm*>("medical_ctl() -> localtime()", ret_localtime, NULL);
+
+    string year = to_string(1900 + st_time.tm_year);
+    string mon = to_string(st_time.tm_mon + 1);
+    string day = to_string(st_time.tm_mday);
+    string sum = year + "." + mon + "." + day;
+
+    struct medical buf_write = {};
+    strcpy(buf_write.date, sum.c_str());
+    int tmpi = 1;
+    buf_write.num = tmpi;
+
+    printf("empty previous data\n\n");
+
+    printf("======================================\n");
+    printf("%s\n%s",
+        buf_write.date,
+        this->medical[buf_write.num].c_str());
+    printf("======================================\n\n");
+
+    int ret_write = write(fd_medical, (const void*)&buf_write, sizeof(struct medical));
+    check_err::check("medical_ctl() -> write()", ret_write, -1);
+  }
+  else
+  {
+    off_t mv_size = (off_t)sizeof(struct medical);
+    int ret_lseek_2 = lseek(fd_medical, -mv_size, SEEK_CUR);
+    check_err::check("medical_ctl() -> lseek()", ret_lseek_2, -1);
+
+    struct medical buf_read_medical = {};
+    int ret_read_medical = read(a_fd_medical.get_fd(), &buf_read_medical, mv_size);
+    if (ret_read_medical == -1)
+    {
+      string tmp1("int Control::medical_ctl() -> read()");
+      string tmp2((strerror(errno)));
+      Exception err(tmp1, tmp2, (int)errno);
+      throw err;
+    }
+
+    printf("\n\n======================================\n");
+    printf("%s\n%s",
+        buf_read_medical.date,
+        this->medical[buf_read_medical.num].c_str());
+    printf("======================================\n\n");
+
+    time_t ret_time = time(NULL);
+    check_err::check("medical_ctl() -> time()", ret_time, (time_t)-1);
+
+    struct tm st_time = {};
+    struct tm* ret_localtime = localtime_r((const time_t*)&ret_time, &st_time);
+    check_err::check<struct tm*>("medical_ctl() -> localtime()", ret_localtime, NULL);
+
+    string year = to_string(1900 + st_time.tm_year);
+    string mon = to_string(st_time.tm_mon + 1);
+    string day = to_string(st_time.tm_mday);
+    string sum = year + "." + mon + "." + day;
+
+    struct medical buf_write = {};
+    strcpy(buf_write.date, sum.c_str());
+    if(strcmp(buf_read_medical.date, buf_write.date) != 0)
+    { 
+      int tmpi = ( ( buf_read_medical.num + 1)  % 5);
+      if(tmpi == 0)
+      {
+        tmpi++;
+      }
+      buf_write.num = tmpi;
+
+      printf("======================================\n");
+      printf("%s\n%s",
+          buf_write.date,
+          this->medical[buf_write.num].c_str());
+      printf("======================================\n\n");
+
+      int ret_write = write(fd_medical, (const void*)&buf_write, sizeof(struct medical));
+      check_err::check("medical_ctl() -> write()", ret_write, -1);
+    }
+    else
+    {
+      printf("\n==============Same  Date==============\n");
+      printf("%s\n%s",
+          buf_read_medical.date,
+          this->medical[buf_read_medical.num].c_str());
+      printf("======================================\n\n");
+
+    }
+
+  }
+
+  sigprocmask(SIG_UNBLOCK, &st, NULL);
+  return 0;
+}
+
+int Control::set_medical()
+{
+  string one;
+  one += "Milk Thistle\n";
+  one += "Omega\n";
+  one += "Saw Palmetto\n";
+  one += "Chondroition\n";
+  one += "MSM\n";
+
+  string two;
+  two += "Eye Clear\n";
+  two += "Astaxanthin Mini\n";
+  two += "Chondroition\n";
+  two += "MSM\n";
+
+  string three;
+  three += "NAC\n";
+  three += "Vitamin C\n";
+  three += "Chondroition\n";
+  three += "MSM\n";
+
+
+  string four;
+  four += "Alpha Lipoic Acid\n";
+  three += "Vitamin C\n";
+  four += "Chondroition\n";
+  four += "MSM\n";
+
+  this->medical[1] = one;
+  this->medical[2] = two;
+  this->medical[3] = three;
+  this->medical[4] = four;
+  return 0;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+

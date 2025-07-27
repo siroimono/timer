@@ -49,22 +49,13 @@ struct io_Data
   time_t time_3;
 };
 
-/*
-struct load_Data
+
+struct medical
 {
-  vector<string> name;
-  vector<string> time;
-
-  string name_1;
-  string time_1;
-
-  string name_2;
-  string time_2;
-
-  string name_3;
-  string time_3;
+  char date[20];
+  int num;
 };
-*/
+
 
 class Data
 {
@@ -94,6 +85,7 @@ class Control
 {
 private:
   static map<string, Data> db;
+  map<int,string> medical;
 
 public:
   Control();
@@ -139,6 +131,10 @@ public:
   const vector<map<string, Data>> log_read_ctl();
 
   int log_dell_ctl();
+
+  int medical_ctl();
+
+  int set_medical();
 };
 
 class UI
@@ -185,6 +181,8 @@ public:
   bool read_UI_empty(char *c_p, time_t t);
 
   void check_UI(const int, const string &name);
+
+  void medical_UI();
 };
 
 class Exception
@@ -205,26 +203,76 @@ public:
 
 class RAII_fd
 {
-private:
-  int fd;
-  string name;
+  private:
+    int fd;
+    string name;
 
-public:
-  RAII_fd(int fd, const string &name);
-  ~RAII_fd();
+  public:
+    RAII_fd(int fd, const string &name);
+    ~RAII_fd();
 
-  int get_fd();
+    int get_fd();
+};
+
+class check_err
+{
+  private:
+  public:
+    check_err () {}
+    ~check_err () {}
+
+    template<typename T>
+      static int check(const char* name, T ret, T f_value)
+      {
+        if(ret == f_value)
+        {
+          string s_name = name;
+          string err_name = strerror(errno);
+          Exception err (s_name, err_name, errno);
+          throw err;
+        }
+        //printf("success %s\n", name);
+        return 0;
+      }
+
+    template<typename T>
+      static int check_ENOENT(const char* name, T ret, T f_value)
+      {
+        if(ret == f_value && errno != ENOENT)
+        {
+          string s_name = name;
+          string err_name = strerror(errno);
+          Exception err (s_name, err_name, errno);
+          throw err;
+        }
+        //printf("success %s\n", name);
+        return 0;
+      }
+
+    template<typename T>
+      static int check(const string name, T ret, T f_value)
+      {
+        if(ret == f_value)
+        {
+          string s_name = name;
+          string err_name = strerror(errno);
+          Exception err (s_name, err_name, errno);
+          throw err;
+        }
+        //printf("success %s\n", name.c_str());
+        return 0;
+      }
 };
 /*
-class Sig_Guard
-{
-private:
-  sigset_t sig_set_block;
-  sigset_t sig_set_old;
+   class Sig_Guard
+   {
+   private:
+   sigset_t sig_set_block;
+   sigset_t sig_set_old;
 
-public:
-  Sig_Guard();
-  ~Sig_Guard();
-  int sig_block_run(vector<int> &vi);
-};
-*/
+   public:
+   Sig_Guard();
+   ~Sig_Guard();
+   int sig_block_run(vector<int> &vi);
+   };
+   */
