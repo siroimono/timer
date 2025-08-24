@@ -14,6 +14,7 @@ Control::~Control()
 {
 }
 
+bool Control::run_stat = false;
 map<string, Data> Control::db; // static
 
 int Control::back_up() // static
@@ -417,6 +418,7 @@ void Control::sig_int_handler(int sig, siginfo_t *sig_info, void *vvv)
   {
     it->second.set_run(false);
   }
+  Control::set_run_stat(false);
 }
 
 int Control::sig_hup()
@@ -650,22 +652,22 @@ int Control::medical_ctl()
   sigemptyset(&st);
   sigfillset(&st);
   sigprocmask(SIG_BLOCK, &st, NULL);
-  //string buf;
-  //getline(cin, buf);
+  // string buf;
+  // getline(cin, buf);
 
-
-  int fd_medical  = open("medical.txt", O_RDWR | O_CREAT, 0755);
-  RAII_fd a_fd_medical (fd_medical, "int Control::medical_ctl() -> open()");
+  int fd_medical = open("medical.txt", O_RDWR | O_CREAT, 0755);
+  RAII_fd a_fd_medical(fd_medical, "int Control::medical_ctl() -> open()");
 
   int ret_lseek_1 = lseek(fd_medical, 0, SEEK_END);
-  if(ret_lseek_1 == 0)
+  if (ret_lseek_1 == 0)
   {
     time_t ret_time = time(NULL);
     check_err::check("medical_ctl() -> time()", ret_time, (time_t)-1);
 
     struct tm st_time = {};
-    struct tm* ret_localtime = localtime_r((const time_t*)&ret_time, &st_time);
-    check_err::check<struct tm*>("medical_ctl() -> localtime()", ret_localtime, NULL);
+    struct tm *ret_localtime = localtime_r((const time_t *)&ret_time, &st_time);
+    check_err::check<struct tm *>("medical_ctl() -> localtime()", ret_localtime,
+                                  NULL);
 
     string year = to_string(1900 + st_time.tm_year);
     string mon = to_string(st_time.tm_mon + 1);
@@ -680,12 +682,11 @@ int Control::medical_ctl()
     printf("empty previous data\n\n");
 
     printf("======================================\n");
-    printf("%s\n%s",
-        buf_write.date,
-        this->medical[buf_write.num].c_str());
+    printf("%s\n%s", buf_write.date, this->medical[buf_write.num].c_str());
     printf("======================================\n\n");
 
-    int ret_write = write(fd_medical, (const void*)&buf_write, sizeof(struct medical));
+    int ret_write =
+        write(fd_medical, (const void *)&buf_write, sizeof(struct medical));
     check_err::check("medical_ctl() -> write()", ret_write, -1);
   }
   else
@@ -695,7 +696,8 @@ int Control::medical_ctl()
     check_err::check("medical_ctl() -> lseek()", ret_lseek_2, -1);
 
     struct medical buf_read_medical = {};
-    int ret_read_medical = read(a_fd_medical.get_fd(), &buf_read_medical, mv_size);
+    int ret_read_medical =
+        read(a_fd_medical.get_fd(), &buf_read_medical, mv_size);
     if (ret_read_medical == -1)
     {
       string tmp1("int Control::medical_ctl() -> read()");
@@ -705,17 +707,17 @@ int Control::medical_ctl()
     }
 
     printf("\n\n======================================\n");
-    printf("%s\n%s",
-        buf_read_medical.date,
-        this->medical[buf_read_medical.num].c_str());
+    printf("%s\n%s", buf_read_medical.date,
+           this->medical[buf_read_medical.num].c_str());
     printf("======================================\n\n");
 
     time_t ret_time = time(NULL);
     check_err::check("medical_ctl() -> time()", ret_time, (time_t)-1);
 
     struct tm st_time = {};
-    struct tm* ret_localtime = localtime_r((const time_t*)&ret_time, &st_time);
-    check_err::check<struct tm*>("medical_ctl() -> localtime()", ret_localtime, NULL);
+    struct tm *ret_localtime = localtime_r((const time_t *)&ret_time, &st_time);
+    check_err::check<struct tm *>("medical_ctl() -> localtime()", ret_localtime,
+                                  NULL);
 
     string year = to_string(1900 + st_time.tm_year);
     string mon = to_string(st_time.tm_mon + 1);
@@ -724,34 +726,30 @@ int Control::medical_ctl()
 
     struct medical buf_write = {};
     strcpy(buf_write.date, sum.c_str());
-    if(strcmp(buf_read_medical.date, buf_write.date) != 0)
-    { 
-      int tmpi = ( ( buf_read_medical.num + 1)  % 5);
-      if(tmpi == 0)
+    if (strcmp(buf_read_medical.date, buf_write.date) != 0)
+    {
+      int tmpi = ((buf_read_medical.num + 1) % 5);
+      if (tmpi == 0)
       {
         tmpi++;
       }
       buf_write.num = tmpi;
 
       printf("======================================\n");
-      printf("%s\n%s",
-          buf_write.date,
-          this->medical[buf_write.num].c_str());
+      printf("%s\n%s", buf_write.date, this->medical[buf_write.num].c_str());
       printf("======================================\n\n");
 
-      int ret_write = write(fd_medical, (const void*)&buf_write, sizeof(struct medical));
+      int ret_write =
+          write(fd_medical, (const void *)&buf_write, sizeof(struct medical));
       check_err::check("medical_ctl() -> write()", ret_write, -1);
     }
     else
     {
       printf("\n==============Same  Date==============\n");
-      printf("%s\n%s",
-          buf_read_medical.date,
-          this->medical[buf_read_medical.num].c_str());
+      printf("%s\n%s", buf_read_medical.date,
+             this->medical[buf_read_medical.num].c_str());
       printf("======================================\n\n");
-
     }
-
   }
 
   sigprocmask(SIG_UNBLOCK, &st, NULL);
@@ -779,10 +777,9 @@ int Control::set_medical()
   three += "Chondroition\n";
   three += "MSM\n";
 
-
   string four;
   four += "Alpha Lipoic Acid\n";
-  three += "Vitamin C\n";
+  four += "Vitamin C\n";
   four += "Chondroition\n";
   four += "MSM\n";
 
@@ -793,16 +790,12 @@ int Control::set_medical()
   return 0;
 }
 
+const bool Control::get_run_stat()
+{
+  return this->run_stat;
+}
 
-
-
-
-
-
-
-
-
-
-
-
-
+void Control::set_run_stat(const bool set)
+{
+  Control::run_stat = set;
+}

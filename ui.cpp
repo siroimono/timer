@@ -79,6 +79,7 @@ void UI::menu()
     }
     else if (buf_s == "5")
     {
+      Control::set_run_stat(true);
       int flag_timer_run = this->timer_run();
       if (flag_timer_run == 0)
       {
@@ -307,8 +308,22 @@ void UI::stat()
       {
         tmps = "stop";
       }
-      printf("%s -> %s   stat -> %s\n\n", it->first.c_str(), total_time.c_str(),
-             tmps.c_str());
+
+      if (this->ctl.get_run_stat() == true && tmps == "run")
+      {
+        string color = "\033[0;32m";
+        string reset = "\033[0m";
+        tmps = (color + tmps + reset);
+
+        printf("%s -> %s%s%s   stat -> %s%s%s\n\n", it->first.c_str(),
+               color.c_str(), total_time.c_str(), reset.c_str(), color.c_str(),
+               tmps.c_str(), reset.c_str());
+      }
+      else
+      {
+        printf("%s -> %s   stat -> %s\n\n", it->first.c_str(),
+               total_time.c_str(), tmps.c_str());
+      }
     }
   }
 }
@@ -516,10 +531,6 @@ void UI::log_dell_UI()
 }
 
 void UI::medical_UI()
-{ 
+{
   this->ctl.medical_ctl();
 }
-
-
-
-

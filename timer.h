@@ -49,13 +49,11 @@ struct io_Data
   time_t time_3;
 };
 
-
 struct medical
 {
   char date[20];
   int num;
 };
-
 
 class Data
 {
@@ -85,7 +83,8 @@ class Control
 {
 private:
   static map<string, Data> db;
-  map<int,string> medical;
+  map<int, string> medical;
+  static bool run_stat;
 
 public:
   Control();
@@ -135,6 +134,10 @@ public:
   int medical_ctl();
 
   int set_medical();
+
+  const bool get_run_stat();
+
+  static void set_run_stat(const bool set);
 };
 
 class UI
@@ -203,65 +206,67 @@ public:
 
 class RAII_fd
 {
-  private:
-    int fd;
-    string name;
+private:
+  int fd;
+  string name;
 
-  public:
-    RAII_fd(int fd, const string &name);
-    ~RAII_fd();
+public:
+  RAII_fd(int fd, const string &name);
+  ~RAII_fd();
 
-    int get_fd();
+  int get_fd();
 };
 
 class check_err
 {
-  private:
-  public:
-    check_err () {}
-    ~check_err () {}
+private:
+public:
+  check_err()
+  {
+  }
+  ~check_err()
+  {
+  }
 
-    template<typename T>
-      static int check(const char* name, T ret, T f_value)
-      {
-        if(ret == f_value)
-        {
-          string s_name = name;
-          string err_name = strerror(errno);
-          Exception err (s_name, err_name, errno);
-          throw err;
-        }
-        //printf("success %s\n", name);
-        return 0;
-      }
+  template <typename T> static int check(const char *name, T ret, T f_value)
+  {
+    if (ret == f_value)
+    {
+      string s_name = name;
+      string err_name = strerror(errno);
+      Exception err(s_name, err_name, errno);
+      throw err;
+    }
+    // printf("success %s\n", name);
+    return 0;
+  }
 
-    template<typename T>
-      static int check_ENOENT(const char* name, T ret, T f_value)
-      {
-        if(ret == f_value && errno != ENOENT)
-        {
-          string s_name = name;
-          string err_name = strerror(errno);
-          Exception err (s_name, err_name, errno);
-          throw err;
-        }
-        //printf("success %s\n", name);
-        return 0;
-      }
+  template <typename T>
+  static int check_ENOENT(const char *name, T ret, T f_value)
+  {
+    if (ret == f_value && errno != ENOENT)
+    {
+      string s_name = name;
+      string err_name = strerror(errno);
+      Exception err(s_name, err_name, errno);
+      throw err;
+    }
+    // printf("success %s\n", name);
+    return 0;
+  }
 
-    template<typename T>
-      static int check(const string name, T ret, T f_value)
-      {
-        if(ret == f_value)
-        {
-          string s_name = name;
-          string err_name = strerror(errno);
-          Exception err (s_name, err_name, errno);
-          throw err;
-        }
-        //printf("success %s\n", name.c_str());
-        return 0;
-      }
+  template <typename T> static int check(const string name, T ret, T f_value)
+  {
+    if (ret == f_value)
+    {
+      string s_name = name;
+      string err_name = strerror(errno);
+      Exception err(s_name, err_name, errno);
+      throw err;
+    }
+    // printf("success %s\n", name.c_str());
+    return 0;
+  }
 };
 /*
    class Sig_Guard
